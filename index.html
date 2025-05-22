@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple Schedule App</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        font-weight: 300;
+      }
+
+      .header p {
+        opacity: 0.9;
+        font-size: 1.1rem;
+      }
+
+      .content {
+        padding: 30px;
+      }
+
+      .form-section {
+        background: #f8f9fa;
+        padding: 25px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        border: 1px solid #e9ecef;
+      }
+
+      .form-row {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      .form-group {
+        flex: 1;
+        min-width: 150px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #495057;
+        font-size: 0.9rem;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: white;
+      }
+
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+      }
+
+      .schedule-list {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 20px;
+        min-height: 200px;
+      }
+
+      .schedule-item {
+        background: white;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        border-left: 4px solid #667eea;
+        cursor: move;
+        transition: all 0.3s ease;
+        position: relative;
+      }
+
+      .schedule-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      }
+
+      .schedule-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .item-time {
+        font-weight: 600;
+        color: #667eea;
+        font-size: 1.1rem;
+      }
+
+      .item-duration {
+        background: #e9ecef;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        color: #6c757d;
+      }
+
+      .item-label {
+        font-size: 1.1rem;
+        color: #495057;
+        margin-bottom: 10px;
+      }
+
+      .item-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .btn-small {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+        border-radius: 6px;
+      }
+
+      .btn-edit {
+        background: #28a745;
+      }
+
+      .btn-delete {
+        background: #dc3545;
+      }
+
+      .btn-edit:hover {
+        background: #218838;
+      }
+
+      .btn-delete:hover {
+        background: #c82333;
+      }
+
+      .empty-state {
+        text-align: center;
+        color: #6c757d;
+        font-style: italic;
+        padding: 40px 20px;
+      }
+
+      .drag-handle {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #dee2e6;
+        font-size: 1.2rem;
+      }
+
+      .schedule-item.sortable-chosen {
+        opacity: 0.8;
+        transform: rotate(2deg);
+      }
+
+      .schedule-item.sortable-ghost {
+        opacity: 0.4;
+      }
+
+      @media (max-width: 768px) {
+        .form-row {
+          flex-direction: column;
+        }
+
+        .header h1 {
+          font-size: 2rem;
+        }
+
+        .content {
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>📅 My Schedule</h1>
+        <p>Create and organize your daily schedule with ease</p>
+      </div>
+
+      <div class="content">
+        <div class="form-section">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="startTime">Start Time</label>
+              <input type="time" id="startTime" required />
+            </div>
+            <div class="form-group">
+              <label for="endTime">End Time</label>
+              <input type="time" id="endTime" required />
+            </div>
+            <div class="form-group" style="flex: 2">
+              <label for="eventLabel">Event Label</label>
+              <input
+                type="text"
+                id="eventLabel"
+                placeholder="Enter event description"
+                required
+              />
+            </div>
+          </div>
+          <button class="btn" id="addEvent">Add Event</button>
+          <button
+            class="btn"
+            id="updateEvent"
+            style="display: none; background: #28a745"
+          >
+            Update Event
+          </button>
+          <button
+            class="btn"
+            id="cancelEdit"
+            style="display: none; background: #6c757d; margin-left: 10px"
+          >
+            Cancel
+          </button>
+        </div>
+
+        <div class="schedule-list" id="scheduleList">
+          <div class="empty-state">
+            No events scheduled yet. Add your first event above! 🎯
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      $(document).ready(function () {
+        let scheduleData = [];
+        let editingIndex = -1;
+        let sortable;
+
+        // Initialize sortable
+        function initSortable() {
+          const listElement = document.getElementById("scheduleList");
+          if (sortable) {
+            sortable.destroy();
+          }
+          sortable = new Sortable(listElement, {
+            animation: 150,
+            ghostClass: "sortable-ghost",
+            chosenClass: "sortable-chosen",
+            onEnd: function (evt) {
+              const item = scheduleData.splice(evt.oldIndex, 1)[0];
+              scheduleData.splice(evt.newIndex, 0, item);
+              renderSchedule();
+            },
+          });
+        }
+
+        // Round time to nearest 5 minutes
+        function roundToNearestFiveMinutes(timeString) {
+          const [hours, minutes] = timeString.split(":").map(Number);
+          const roundedMinutes = Math.round(minutes / 5) * 5;
+          const adjustedHours = roundedMinutes >= 60 ? hours + 1 : hours;
+          const finalMinutes = roundedMinutes >= 60 ? 0 : roundedMinutes;
+
+          return `${adjustedHours
+            .toString()
+            .padStart(2, "0")}:${finalMinutes.toString().padStart(2, "0")}`;
+        }
+
+        // Calculate duration between two times
+        function calculateDuration(startTime, endTime) {
+          const start = new Date(`1970-01-01T${startTime}:00`);
+          const end = new Date(`1970-01-01T${endTime}:00`);
+          const diffMs = end - start;
+          const diffMins = Math.floor(diffMs / 60000);
+
+          if (diffMins <= 0) return "Invalid";
+
+          const hours = Math.floor(diffMins / 60);
+          const minutes = diffMins % 60;
+
+          if (hours === 0) return `${minutes}m`;
+          if (minutes === 0) return `${hours}h`;
+          return `${hours}h ${minutes}m`;
+        }
+
+        // Format time for display
+        function formatTime(timeString) {
+          const [hours, minutes] = timeString.split(":");
+          const hour = parseInt(hours);
+          const ampm = hour >= 12 ? "PM" : "AM";
+          const displayHour = hour % 12 || 12;
+          return `${displayHour}:${minutes} ${ampm}`;
+        }
+
+        // Add event
+        $("#addEvent").click(function () {
+          const startTime = roundToNearestFiveMinutes($("#startTime").val());
+          const endTime = roundToNearestFiveMinutes($("#endTime").val());
+          const label = $("#eventLabel").val().trim();
+
+          if (!startTime || !endTime || !label) {
+            alert("Please fill in all fields");
+            return;
+          }
+
+          if (startTime >= endTime) {
+            alert("End time must be after start time");
+            return;
+          }
+
+          scheduleData.push({
+            startTime,
+            endTime,
+            label,
+          });
+
+          // Sort by start time
+          scheduleData.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+          renderSchedule();
+          clearForm();
+        });
+
+        // Update event
+        $("#updateEvent").click(function () {
+          const startTime = roundToNearestFiveMinutes($("#startTime").val());
+          const endTime = roundToNearestFiveMinutes($("#endTime").val());
+          const label = $("#eventLabel").val().trim();
+
+          if (!startTime || !endTime || !label) {
+            alert("Please fill in all fields");
+            return;
+          }
+
+          if (startTime >= endTime) {
+            alert("End time must be after start time");
+            return;
+          }
+
+          scheduleData[editingIndex] = {
+            startTime,
+            endTime,
+            label,
+          };
+
+          // Sort by start time
+          scheduleData.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+          renderSchedule();
+          cancelEdit();
+        });
+
+        // Cancel edit
+        $("#cancelEdit").click(function () {
+          cancelEdit();
+        });
+
+        function cancelEdit() {
+          editingIndex = -1;
+          clearForm();
+          $("#addEvent").show();
+          $("#updateEvent").hide();
+          $("#cancelEdit").hide();
+        }
+
+        function clearForm() {
+          $("#startTime").val("");
+          $("#endTime").val("");
+          $("#eventLabel").val("");
+        }
+
+        // Render schedule
+        function renderSchedule() {
+          const $list = $("#scheduleList");
+
+          if (scheduleData.length === 0) {
+            $list.html(
+              '<div class="empty-state">No events scheduled yet. Add your first event above! 🎯</div>'
+            );
+            return;
+          }
+
+          let html = "";
+          scheduleData.forEach((event, index) => {
+            const duration = calculateDuration(event.startTime, event.endTime);
+            html += `
+                        <div class="schedule-item" data-index="${index}">
+                            <div class="drag-handle">⋮⋮</div>
+                            <div class="item-header">
+                                <div class="item-time">
+                                    ${formatTime(
+                                      event.startTime
+                                    )} - ${formatTime(event.endTime)}
+                                </div>
+                                <div class="item-duration">${duration}</div>
+                            </div>
+                            <div class="item-label">${event.label}</div>
+                            <div class="item-actions">
+                                <button class="btn btn-small btn-edit" onclick="editEvent(${index})">Edit</button>
+                                <button class="btn btn-small btn-delete" onclick="deleteEvent(${index})">Delete</button>
+                            </div>
+                        </div>
+                    `;
+          });
+
+          $list.html(html);
+          initSortable();
+        }
+
+        // Global functions for buttons
+        window.editEvent = function (index) {
+          editingIndex = index;
+          const event = scheduleData[index];
+
+          $("#startTime").val(event.startTime);
+          $("#endTime").val(event.endTime);
+          $("#eventLabel").val(event.label);
+
+          $("#addEvent").hide();
+          $("#updateEvent").show();
+          $("#cancelEdit").show();
+        };
+
+        window.deleteEvent = function (index) {
+          if (confirm("Are you sure you want to delete this event?")) {
+            scheduleData.splice(index, 1);
+            renderSchedule();
+
+            if (editingIndex === index) {
+              cancelEdit();
+            } else if (editingIndex > index) {
+              editingIndex--;
+            }
+          }
+        };
+
+        // Initialize with current time
+        const now = new Date();
+        const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now
+          .getMinutes()
+          .toString()
+          .padStart(2, "0")}`;
+        $("#startTime").val(roundToNearestFiveMinutes(currentTime));
+      });
+    </script>
+  </body>
+</html>
